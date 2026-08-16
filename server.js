@@ -303,7 +303,15 @@ app.use(session({
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax', secure: isProd }
 }));
-app.use(csrf({ cookie: true }));
+
+const csrfMiddleware = csrf({ cookie: true });
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.path === '/login' || req.path === '/logout') {
+    return next();
+  }
+  return csrfMiddleware(req, res, next);
+});
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -319,6 +327,20 @@ app.use(helmet({
   }
 }));
 app.use(morgan(isProd ? 'combined' : 'dev'));
+
+app.get('/api/session', (req, res) => {
+  if (!req.session || !req.session.user) {
+    return jsonResponse(res, true, { isLoggedIn: false, user: null }, null, { status: 200 });
+  }
+
+  return jsonResponse(res, true, {
+    isLoggedIn: true,
+    user: {
+      username: req.session.user.username,
+      role: req.session.user.role
+    }
+  }, null, { status: 200 });
+});
 
 app.get('/api/health', async (req, res) => {
   const started = Date.now();

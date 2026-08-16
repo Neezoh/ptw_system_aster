@@ -1,5 +1,24 @@
 const form = document.getElementById('ptwForm');
 const toast = document.getElementById('toast');
+const sessionBadge = document.getElementById('sessionBadge');
+
+const updateSessionBadge = async () => {
+  if (!sessionBadge) return;
+
+  try {
+    const response = await fetch('/api/session');
+    const payload = await response.json();
+    const isLoggedIn = payload?.success && payload?.data?.isLoggedIn;
+
+    sessionBadge.textContent = isLoggedIn ? 'Logged in as Admin' : 'Guest Access';
+    sessionBadge.classList.toggle('admin', isLoggedIn);
+    sessionBadge.classList.toggle('guest', !isLoggedIn);
+  } catch (error) {
+    sessionBadge.textContent = 'Guest Access';
+    sessionBadge.classList.remove('admin');
+    sessionBadge.classList.add('guest');
+  }
+};
 
 const setToast = (message) => {
   toast.textContent = message;
@@ -77,4 +96,5 @@ const handleSubmit = async (event) => {
 
 form.addEventListener('submit', handleSubmit);
 document.getElementById('resetBtn').addEventListener('click', () => form.reset());
+updateSessionBadge();
 populateLookups();

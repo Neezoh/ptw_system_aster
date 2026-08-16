@@ -50,6 +50,34 @@ button { border: none; cursor: pointer; }
   padding: 8px 0 24px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+}
+
+.session-badge.admin {
+  background: rgba(48, 179, 106, 0.12);
+  border-color: rgba(48, 179, 106, 0.4);
+  color: #dffde9;
+}
+
 .brand-block {
   display: flex;
   align-items: center;
