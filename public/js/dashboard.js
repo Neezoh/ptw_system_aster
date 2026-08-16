@@ -2,6 +2,7 @@ const statsGrid = document.getElementById('statsGrid');
 const recentTable = document.getElementById('recentTable');
 const longOpenTable = document.getElementById('longOpenTable');
 const sessionBadge = document.getElementById('sessionBadge');
+const adminLoginButton = document.getElementById('adminLoginButton');
 
 const updateSessionBadge = async () => {
   if (!sessionBadge) return;
@@ -14,10 +15,20 @@ const updateSessionBadge = async () => {
     sessionBadge.textContent = isLoggedIn ? 'Logged in as Admin' : 'Guest Access';
     sessionBadge.classList.toggle('admin', isLoggedIn);
     sessionBadge.classList.toggle('guest', !isLoggedIn);
+
+    if (adminLoginButton) {
+      adminLoginButton.textContent = isLoggedIn ? 'Admin Panel' : 'Admin Login';
+      adminLoginButton.setAttribute('href', isLoggedIn ? '/admin' : '/login');
+    }
   } catch (error) {
     sessionBadge.textContent = 'Guest Access';
     sessionBadge.classList.remove('admin');
     sessionBadge.classList.add('guest');
+
+    if (adminLoginButton) {
+      adminLoginButton.textContent = 'Admin Login';
+      adminLoginButton.setAttribute('href', '/login');
+    }
   }
 };
 

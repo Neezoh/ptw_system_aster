@@ -53,29 +53,62 @@ button { border: none; cursor: pointer; }
 .topbar-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: min(100%, 500px);
 }
 
 .session-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  padding: 0 12px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .session-badge.admin {
   background: rgba(48, 179, 106, 0.12);
   border-color: rgba(48, 179, 106, 0.4);
   color: #dffde9;
+}
+
+.primary-button, .secondary-button, .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 0 20px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .primary-button, .ghost-button {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
 }
 
 .brand-block {
