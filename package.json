@@ -1,0 +1,35 @@
+{
+  "name": "sistem-carian-ptw",
+  "version": "1.0.0",
+  "description": "PTW Search System for HSE field verification",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "ptw",
+    "hse",
+    "permit-to-work",
+    "mysql",
+    "express"
+  ],
+  "author": "GitHub Copilot",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "csurf": "^1.11.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.6.2",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.5.1"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

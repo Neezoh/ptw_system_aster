@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard PTW</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 18px; }
+      .stat-card {
+        background: rgba(18,28,43,0.96);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 16px;
+      }
+      .stat-card h4 { margin: 0 0 8px; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; }
+      .stat-card strong { font-size: clamp(2rem, 3vw, 2.5rem); }
+      .widget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 18px; }
+      .chart-card, .table-card {
+        background: rgba(18,28,43,0.96);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 16px;
+      }
+      .chart-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; height: 220px; display: grid; place-items: center; color: var(--muted); }
+      table { min-width: auto; }
+      .table-card h4 { margin: 0 0 14px; }
+      .small-table { width: 100%; }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark">PTW</div>
+          <div>
+            <p class="eyebrow">HSE DASHBOARD</p>
+            <h1>Dashboard PTW</h1>
+          </div>
+        </div>
+        <a href="/" class="ghost-button">Back to Search</a>
+      </header>
+
+      <main>
+        <section class="dashboard-grid" id="statsGrid"></section>
+
+        <section class="widget-grid">
+          <article class="chart-card">
+            <h3>PTW by Status</h3>
+            <div class="chart-box">Donut Chart</div>
+          </article>
+          <article class="chart-card">
+            <h3>PTW by Location</h3>
+            <div class="chart-box">Bar Chart</div>
+          </article>
+          <article class="chart-card">
+            <h3>Hot vs Cold</h3>
+            <div class="chart-box">Split Bar</div>
+          </article>
+          <article class="chart-card">
+            <h3>PTW issued per month</h3>
+            <div class="chart-box">Line Chart</div>
+          </article>
+        </section>
+
+        <section class="widget-grid">
+          <article class="table-card">
+            <h4>Recently Issued</h4>
+            <table class="small-table">
+              <thead><tr><th>No. PTW</th><th>Status</th></tr></thead>
+              <tbody id="recentTable"></tbody>
+            </table>
+          </article>
+          <article class="table-card">
+            <h4>Long-Open Permits</h4>
+            <table class="small-table">
+              <thead><tr><th>No. PTW</th><th>Days Open</th></tr></thead>
+              <tbody id="longOpenTable"></tbody>
+            </table>
+          </article>
+        </section>
+      </main>
+
+      <footer class="safety-footer">
+        <p>
+          Sistem ini adalah alat rujukan sahaja. Permit fizikal yang ditandatangani kekal sebagai dokumen rasmi.<br />
+          This system is a reference tool only. The signed physical permit remains the official document.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/js/dashboard.js"></script>
+  </body>
+</html>

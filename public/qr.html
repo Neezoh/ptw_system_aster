@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PTW QR Label</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      body { background: #0b1220; }
+      .label-wrap { max-width: 980px; margin: 0 auto; padding: 20px 14px 60px; }
+      .label-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+      .label-card {
+        background: #fff;
+        color: #0f172a;
+        border-radius: 16px;
+        padding: 18px 16px;
+        min-height: 260px;
+        display: flex; flex-direction: column; justify-content: space-between;
+        border: 1px solid rgba(15,23,42,0.12);
+      }
+      canvas { display: block; width: 150px; height: 150px; margin: 0 auto; }
+      .label-card h3 { margin: 0; font-size: 1.1rem; }
+      .label-meta { font-size: 0.83rem; color: #475569; }
+      .label-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+      @media print {
+        body { background: white; }
+        .label-actions, .ghost-button, .primary-button { display: none !important; }
+        .label-card { break-inside: avoid; box-shadow: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="label-wrap">
+      <div class="label-actions">
+        <button class="primary-button" type="button" onclick="window.print()">Print Label</button>
+        <a class="ghost-button" href="/admin">Back to Admin</a>
+      </div>
+      <div id="labelGrid" class="label-grid"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script type="module" src="/js/qr.js"></script>
+  </body>
+</html>

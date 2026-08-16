@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PTW Detail</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      body { background: #0b1220; }
+      .detail-panel {
+        margin-top: 18px;
+        padding: 20px 18px 18px;
+      }
+      .detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .validity-banner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        margin: 18px 0 20px;
+        font-weight: 700;
+        border: 1px solid transparent;
+      }
+      .validity-banner.success { background: rgba(48, 179, 106, 0.14); border-color: rgba(48, 179, 106, 0.5); color: #c2f0d2; }
+      .validity-banner.warning { background: rgba(215, 166, 63, 0.14); border-color: rgba(215, 166, 63, 0.5); color: #f5d58e; }
+      .validity-banner.muted { background: rgba(122, 136, 159, 0.18); border-color: rgba(122, 136, 159, 0.5); color: #dfe7f6; }
+      .permit-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(220px, 0.7fr);
+        gap: 20px;
+      }
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+        gap: 16px;
+      }
+      .field-grid > div {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 14px;
+      }
+      .field-grid label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .field-grid output {
+        display: block;
+        min-height: 28px;
+        line-height: 1.5;
+        color: var(--text);
+        font-weight: 600;
+      }
+      .full-span { grid-column: 1 / -1; }
+      .qr-panel {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+      }
+      .qr-box {
+        width: 170px;
+        height: 170px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: rgba(233,240,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+      }
+      .qr-panel p { color: var(--muted); text-align: center; font-size: 0.9rem; }
+      .detail-actions {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+      }
+      @media (max-width: 768px) {
+        .detail-header, .permit-layout, .field-grid { grid-template-columns: 1fr; display: grid; }
+        .detail-header { display: flex; flex-direction: column; align-items: flex-start; }
+      }
+      @media print {
+        body { background: white; color: #111827; }
+        .topbar, .search-actions, .ghost-button, .secondary-button, .primary-button, .safety-footer { display: none !important; }
+        .detail-panel { padding: 0; border: none; }
+        .field-grid > div { background: white; border-color: #d9dfe7; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark">PTW</div>
+          <div>
+            <p class="eyebrow">HSE FIELD VERIFICATION</p>
+            <h1>Sistem Carian PTW</h1>
+          </div>
+        </div>
+        <a href="/" class="ghost-button">Back to Search</a>
+      </header>
+
+      <main>
+        <section class="detail-panel panel">
+          <div class="detail-header">
+            <div>
+              <p class="eyebrow accent">Butiran Permit / Permit Detail</p>
+              <h3 id="detailTitle">-</h3>
+            </div>
+            <div class="header-actions">
+              <span id="detailStatus" class="status-badge status-open">Open</span>
+              <span id="detailType" class="type-badge type-hot">Hot</span>
+            </div>
+          </div>
+
+          <div id="validityBanner" class="validity-banner success">
+            <strong>PERMIT SAH — Kerja boleh diteruskan / VALID — Work may proceed</strong>
+          </div>
+
+          <div class="permit-layout">
+            <div class="field-grid">
+              <div>
+                <label>PTW Number</label>
+                <output id="ptwNumber">-</output>
+              </div>
+              <div>
+                <label>JHA Number</label>
+                <output id="jhaNumber">-</output>
+              </div>
+              <div>
+                <label>Type of Permit</label>
+                <output id="permitType">-</output>
+              </div>
+              <div>
+                <label>Location</label>
+                <output id="location">-</output>
+              </div>
+
+              <div class="full-span">
+                <label>Work Description</label>
+                <output id="workDescription">-</output>
+              </div>
+
+              <div>
+                <label>Permit Applicant Name</label>
+                <output id="applicantName">-</output>
+              </div>
+              <div>
+                <label>Work Leader (WL)</label>
+                <output id="workLeader">-</output>
+              </div>
+              <div>
+                <label>Authorised Authority</label>
+                <output id="authority">-</output>
+              </div>
+              <div>
+                <label>Authorised Authority Rep (AAR)</label>
+                <output id="authorityRep">-</output>
+              </div>
+              <div>
+                <label>Date Issued</label>
+                <output id="dateIssued">-</output>
+              </div>
+              <div>
+                <label>Date Closed</label>
+                <output id="dateClosed">-</output>
+              </div>
+              <div>
+                <label>Status</label>
+                <output id="statusValue">-</output>
+              </div>
+              <div class="full-span">
+                <label>Remark</label>
+                <output id="remark">-</output>
+              </div>
+            </div>
+
+            <aside class="qr-panel">
+              <div class="qr-box" aria-label="QR code placeholder">QR</div>
+              <p id="dataStamp">Data as of --</p>
+              <div class="detail-actions">
+                <button class="primary-button small" type="button" onclick="window.print()">Print</button>
+                <button class="secondary-button small" type="button">Copy Link</button>
+                <a href="/" class="ghost-button small">Back to Search</a>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </main>
+
+      <footer class="safety-footer">
+        <p>
+          Sistem ini adalah alat rujukan sahaja. Permit fizikal yang ditandatangani kekal sebagai dokumen rasmi.<br />
+          This system is a reference tool only. The signed physical permit remains the official document.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/js/ptw.js"></script>
+  </body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ms">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Carian PTW</title>
+    <meta name="description" content="Sistem Carian PTW" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark">PTW</div>
+          <div>
+            <p class="eyebrow">HSE FIELD VERIFICATION</p>
+            <h1>Sistem Carian PTW</h1>
+          </div>
+        </div>
+        <a href="/dashboard" class="ghost-button">Dashboard</a>
+      </header>
+
+      <main class="page-content">
+        <section class="hero panel">
+          <div class="hero-copy">
+            <p class="eyebrow accent">Cari Permit / Search Permit</p>
+            <h2>Masukkan No. PTW / Enter PTW Number</h2>
+          </div>
+
+          <div class="search-stack">
+            <div class="search-input-wrap">
+              <label class="sr-only" for="ptwSearch">PTW Number</label>
+              <input id="ptwSearch" type="text" autocomplete="off" placeholder="Contoh: PTW-2026-00142" />
+              <button class="primary-button" type="button" id="searchBtn">Cari</button>
+            </div>
+
+            <div class="search-actions">
+              <button class="secondary-button" type="button">Scan QR</button>
+              <button class="link-button" id="toggleAdvanced" type="button">Advanced Search</button>
+            </div>
+
+            <ul id="suggestions" class="suggestions" aria-live="polite"></ul>
+          </div>
+        </section>
+
+        <section id="advancedPanel" class="advanced-panel panel collapsed" aria-expanded="false">
+          <div class="panel-heading">
+            <h3>Carian Lanjutan / Advanced Search</h3>
+          </div>
+          <div class="filter-grid">
+            <label>
+              <span>Lokasi / Location</span>
+              <select id="filterLocation">
+                <option value="">Semua / All</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Jenis Permit / Type</span>
+              <select id="filterType">
+                <option value="">Semua / All</option>
+                <option value="Hot">Hot</option>
+                <option value="Cold">Cold</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select id="filterStatus">
+                <option value="">Semua / All</option>
+                <option value="Open">Open</option>
+                <option value="Extended">Extended</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Tarikh Dikeluarkan / Date Issued From</span>
+              <input id="filterFrom" type="date" />
+            </label>
+
+            <label>
+              <span>Tarikh Dikeluarkan / Date Issued To</span>
+              <input id="filterTo" type="date" />
+            </label>
+
+            <label>
+              <span>Work Leader</span>
+              <select id="filterWorkLeader">
+                <option value="">Semua / All</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Authorised Authority</span>
+              <select id="filterAuthority">
+                <option value="">Semua / All</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="results-panel panel">
+          <div class="results-header">
+            <div>
+              <p class="eyebrow accent">Keputusan / Results</p>
+              <h3>PTW yang dijumpai</h3>
+            </div>
+            <span class="meta-badge" id="resultMeta">0 rekod / 0 records</span>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>No. PTW</th>
+                  <th>Lokasi</th>
+                  <th>Jenis</th>
+                  <th>Permohonan</th>
+                  <th>Tarikh</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="resultsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="safety-footer">
+        <p>
+          Sistem ini adalah alat rujukan sahaja. Permit fizikal yang ditandatangani kekal sebagai dokumen rasmi.<br />
+          This system is a reference tool only. The signed physical permit remains the official document.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
