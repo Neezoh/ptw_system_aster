@@ -34,70 +34,158 @@ const adminPassword = process.env.ADMIN_PASSWORD || 'change-me';
 let dbAvailable = false;
 
 const fallbackLocations = [
-  'Kertih', 'Gebeng', 'Pasir Gudang', 'Offshore Platform A', 'Tank Farm 2', 'Jetty 3', 'Utility Block', 'Residue Treatment Unit'
+  'PCFS SAMUR - Area A',
+  'PCFS SAMUR - Area B',
+  'PCFS SAMUR - Area C',
+  'ADMIN BUILDING',
+  'SWITCH GEAR'
 ];
 
 const fallbackPersonnel = [
-  { name: 'Ahmad Faiz', role: 'WL' },
-  { name: 'Raja Iskandar', role: 'WL' },
-  { name: 'Hafiz Rahman', role: 'WL' },
-  { name: 'Nizam Ariffin', role: 'AA' },
-  { name: 'Siti Aisyah', role: 'AA' },
-  { name: 'Mokhtar Yusof', role: 'AA' },
-  { name: 'Zulhadi Kamal', role: 'AAR' },
-  { name: 'Farid Hakim', role: 'AAR' },
-  { name: 'Ainul Huda', role: 'AAR' },
-  { name: 'Shahrul Nizam', role: 'WL' },
-  { name: 'Badrul Hisham', role: 'WL' },
-  { name: 'Salina Mior', role: 'AA' },
-  { name: 'Jamaludin Hashim', role: 'AAR' }
+  { name: 'Tayan', role: 'WL' },
+  { name: 'Zulkifli', role: 'WL' },
+  { name: 'Chu', role: 'WL' },
+  { name: 'TAHA', role: 'AA' },
+  { name: 'Ahmad Razali', role: 'AA' },
+  { name: 'Kamal', role: 'AAR' },
+  { name: 'Sinta', role: 'AAR' },
+  { name: 'SINTAN', role: 'AAR' },
+  { name: 'Eryan Fadlin', role: 'Applicant' },
+  { name: 'Siti Amirah', role: 'Applicant' },
+  { name: 'Mohd Hafiz', role: 'Applicant' },
+  { name: 'Lee Nan Wee', role: 'Applicant' },
+  { name: 'Nasuha', role: 'Applicant' }
 ];
 
 const makeDemoRecords = () => {
-  const records = [];
-  const statusCycle = ['Open', 'Closed', 'Suspended', 'Extended'];
-  const typeCycle = ['Hot', 'Cold'];
-  const descriptionPool = [
-    'Welding on pipe rack support frame',
-    'Grinding of flange edge and surface preparation',
-    'Scaffolding erection for maintenance access',
-    'Valve replacement and line isolation check',
-    'Inspection of tank deck handrail repair',
-    'Cutting and hot work at utility skid',
-    'Cold work inspection and bolt torque verification',
-    'Isolation and cleaning of transfer line'
+  return [
+    {
+      id: 1,
+      ptw_number: 'PTW-2026-001',
+      jha_number: 'JHA-2026-0101',
+      location: 'PCFS SAMUR - Area A',
+      permit_applicant_name: 'Eryan Fadlin',
+      permit_type: 'Hot',
+      work_description: 'Welding & Cutting Noise Barrier Beam',
+      work_leader: 'Tayan',
+      authorised_authority: 'Ahmad Razali',
+      authorised_authority_rep: 'Kamal',
+      date_issued: '2026-08-01',
+      date_closed: '2026-08-05',
+      status: 'Closed',
+      remark: 'Closed after completion of cutting and welding works.',
+      created_at: '2026-08-01T00:00:00.000Z',
+      updated_at: '2026-08-05T00:00:00.000Z'
+    },
+    {
+      id: 2,
+      ptw_number: 'PTW-2026-002',
+      jha_number: 'JHA-2026-0102',
+      location: 'PCFS SAMUR - Area B',
+      permit_applicant_name: 'Siti Amirah',
+      permit_type: 'Cold',
+      work_description: 'Installation of Shear Wood Panels',
+      work_leader: 'Tayan',
+      authorised_authority: 'Ahmad Razali',
+      authorised_authority_rep: 'Kamal',
+      date_issued: '2026-08-02',
+      date_closed: null,
+      status: 'Open',
+      remark: 'Cold work permit active for installation activity.',
+      created_at: '2026-08-02T00:00:00.000Z',
+      updated_at: '2026-08-02T00:00:00.000Z'
+    },
+    {
+      id: 3,
+      ptw_number: 'PTW-2026-003',
+      jha_number: 'JHA-2026-0103',
+      location: 'PCFS SAMUR - Area A',
+      permit_applicant_name: 'Mohd Hafiz',
+      permit_type: 'Hot',
+      work_description: 'Grinding Works on Support Structure',
+      work_leader: 'Zulkifli',
+      authorised_authority: 'Ahmad Razali',
+      authorised_authority_rep: 'Kamal',
+      date_issued: '2026-08-03',
+      date_closed: null,
+      status: 'Suspended',
+      remark: 'Hot work suspended pending safety review.',
+      created_at: '2026-08-03T00:00:00.000Z',
+      updated_at: '2026-08-03T00:00:00.000Z'
+    },
+    {
+      id: 4,
+      ptw_number: 'PTW-2026-004',
+      jha_number: 'JHA-2026-0104',
+      location: 'PCFS SAMUR - Area C',
+      permit_applicant_name: 'Eryan Fadlin',
+      permit_type: 'Cold',
+      work_description: 'Scaffolding Erection for Barrier',
+      work_leader: 'Tayan',
+      authorised_authority: 'Ahmad Razali',
+      authorised_authority_rep: 'Kamal',
+      date_issued: '2026-08-04',
+      date_closed: null,
+      status: 'Extended',
+      remark: 'Permit extended for continued barrier erection works.',
+      created_at: '2026-08-04T00:00:00.000Z',
+      updated_at: '2026-08-04T00:00:00.000Z'
+    },
+    {
+      id: 5,
+      ptw_number: 'PTW-2026-005',
+      jha_number: 'JHA-2026-0105',
+      location: 'PCFS SAMUR - Area B',
+      permit_applicant_name: 'Lee Nan Wee',
+      permit_type: 'Cold',
+      work_description: 'Touch Up Painting & Inspection',
+      work_leader: 'Zulkifli',
+      authorised_authority: 'Ahmad Razali',
+      authorised_authority_rep: 'Kamal',
+      date_issued: '2026-08-05',
+      date_closed: '2026-08-10',
+      status: 'Closed',
+      remark: 'Touch-up painting and inspection completed and signed off.',
+      created_at: '2026-08-05T00:00:00.000Z',
+      updated_at: '2026-08-10T00:00:00.000Z'
+    },
+    {
+      id: 6,
+      ptw_number: 'PTW-2026-006',
+      jha_number: 'JHA-2026-0122',
+      location: 'ADMIN BUILDING',
+      permit_applicant_name: 'Nasuha',
+      permit_type: 'Cold',
+      work_description: 'Retaining Wall',
+      work_leader: 'Chu',
+      authorised_authority: 'Kamal',
+      authorised_authority_rep: 'Sinta',
+      date_issued: '2026-08-15',
+      date_closed: '2026-08-17',
+      status: 'Open',
+      remark: 'Maintenance work ongoing under permit controls.',
+      created_at: '2026-08-15T00:00:00.000Z',
+      updated_at: '2026-08-17T00:00:00.000Z'
+    },
+    {
+      id: 7,
+      ptw_number: 'PTW-2026-007',
+      jha_number: 'JHA-2026-0111',
+      location: 'SWITCH GEAR',
+      permit_applicant_name: 'Eryan Fadlin',
+      permit_type: 'Cold',
+      work_description: 'MODIFIED',
+      work_leader: 'TAHA',
+      authorised_authority: 'KAMAL',
+      authorised_authority_rep: 'SINTAN',
+      date_issued: '2026-08-17',
+      date_closed: '2026-08-20',
+      status: 'Extended',
+      remark: 'Permit extended due to modification work beyond the original scope.',
+      created_at: '2026-08-17T00:00:00.000Z',
+      updated_at: '2026-08-20T00:00:00.000Z'
+    }
   ];
-
-  for (let i = 1; i <= 48; i += 1) {
-    const year = 2025 + (i % 2);
-    const status = statusCycle[(i - 1) % statusCycle.length];
-    const permitType = typeCycle[(i + 1) % typeCycle.length];
-    const location = fallbackLocations[(i - 1) % fallbackLocations.length];
-    const dateIssued = new Date(Date.now() - (i * 4 + 12) * 86400000).toISOString().slice(0, 10);
-    const dateClosed = status === 'Closed' ? new Date(Date.now() - (i * 2 + 2) * 86400000).toISOString().slice(0, 10) : null;
-    const remark = permitType === 'Hot' ? 'Hot work authorization reviewed and approved by permit issuer.' : 'Cold work inspection checklist completed.';
-
-    records.push({
-      id: i,
-      ptw_number: `PTW-${year}-${String(i).padStart(5, '0')}`,
-      jha_number: `JHA-${year}-${String((i * 7) % 200000).padStart(5, '0')}`,
-      location,
-      permit_applicant_name: `Applicant ${i}`,
-      permit_type: permitType,
-      work_description: descriptionPool[(i - 1) % descriptionPool.length],
-      work_leader: fallbackPersonnel[(i * 2) % fallbackPersonnel.length].name,
-      authorised_authority: fallbackPersonnel[(i * 3 + 1) % fallbackPersonnel.length].name,
-      authorised_authority_rep: fallbackPersonnel[(i * 4 + 2) % fallbackPersonnel.length].name,
-      date_issued: dateIssued,
-      date_closed: dateClosed,
-      status,
-      remark,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-  }
-
-  return records;
 };
 
 const fallbackRecords = makeDemoRecords();
