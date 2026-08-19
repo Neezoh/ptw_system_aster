@@ -29,17 +29,17 @@ const renderResults = (records) => {
       <tr>
         <td colspan="6" class="empty-state">
           <div class="empty-copy">
-            <strong>Tiada PTW dijumpai.</strong>
+            <strong>No PTW records found.</strong>
             <span>No PTW found for the search criteria.</span>
           </div>
         </td>
       </tr>
     `;
-    resultMeta.textContent = '0 rekod / 0 records';
+    resultMeta.textContent = '0 records';
     return;
   }
 
-  resultMeta.textContent = `${records.length} rekod / ${records.length} records`;
+  resultMeta.textContent = `${records.length} records`;
 
   resultsBody.innerHTML = records.map((record) => `
     <tr data-ptw="${record.ptw_number}">
@@ -79,13 +79,13 @@ const loadLookups = async () => {
     const response = await fetchJson('/api/lookups');
     const { locations = [], personnel = [] } = response.data || {};
 
-    filterLocation.innerHTML = '<option value="">Semua / All</option>' + locations.map((name) => `<option value="${name}">${name}</option>`).join('');
+    filterLocation.innerHTML = '<option value="">All</option>' + locations.map((name) => `<option value="${name}">${name}</option>`).join('');
 
     const leaders = [...new Set(personnel.filter((p) => p.role === 'WL').map((p) => p.name))].sort();
     const authorities = [...new Set(personnel.filter((p) => p.role === 'AA' || p.role === 'AAR').map((p) => p.name))].sort();
 
-    filterWorkLeader.innerHTML = '<option value="">Semua / All</option>' + leaders.map((name) => `<option value="${name}">${name}</option>`).join('');
-    filterAuthority.innerHTML = '<option value="">Semua / All</option>' + authorities.map((name) => `<option value="${name}">${name}</option>`).join('');
+    filterWorkLeader.innerHTML = '<option value="">All</option>' + leaders.map((name) => `<option value="${name}">${name}</option>`).join('');
+    filterAuthority.innerHTML = '<option value="">All</option>' + authorities.map((name) => `<option value="${name}">${name}</option>`).join('');
   } catch (error) {
     console.error('Lookup loading failed', error);
   }
@@ -119,8 +119,8 @@ const loadPTWResults = async () => {
       <tr>
         <td colspan="6" class="empty-state">
           <div class="empty-copy">
-            <strong>Tiada PTW dijumpai.</strong>
-            <span>Tiada data tersedia buat masa ini.</span>
+            <strong>No PTW records found.</strong>
+            <span>No data is currently available.</span>
           </div>
         </td>
       </tr>

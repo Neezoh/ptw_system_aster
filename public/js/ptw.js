@@ -33,10 +33,10 @@ const typeClass = (type) => (type === 'Hot' ? 'type-hot' : 'type-cold');
 
 const applyBanner = (status, remark) => {
   const map = {
-    Open: { className: 'success', text: 'PERMIT SAH — Kerja boleh diteruskan / VALID — Work may proceed' },
-    Extended: { className: 'success', text: `PERMIT SAH — Pelanjutan diluluskan / VALID — Extension approved (${remark || 'No remark'})` },
-    Suspended: { className: 'warning', text: 'DIGANTUNG / SUSPENDED — Do not proceed' },
-    Closed: { className: 'muted', text: 'DITUTUP / CLOSED — Permit no longer valid' }
+    Open: { className: 'success', text: 'VALID — Work may proceed' },
+    Extended: { className: 'success', text: `VALID — Extension approved (${remark || 'No remark'})` },
+    Suspended: { className: 'warning', text: 'SUSPENDED — Do not proceed' },
+    Closed: { className: 'muted', text: 'CLOSED — Permit no longer valid' }
   };
 
   const selected = map[status] || map.Closed;
