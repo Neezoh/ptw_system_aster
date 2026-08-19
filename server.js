@@ -1,4 +1,5 @@
 require('dotenv').config();
+const crypto = require('crypto');
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -31,6 +32,7 @@ const pool = mysql.createPool({
 
 const adminUsername = process.env.ADMIN_USERNAME || 'admin';
 const adminPassword = process.env.ADMIN_PASSWORD || 'change-me';
+const adminAuthCookie = 'ptw_admin_auth';
 let dbAvailable = false;
 
 const fallbackLocations = [
@@ -212,6 +214,38 @@ const bootstrapAdmin = async () => {
 
 const csrfProtection = csrf({ cookie: true });
 
+const signAdminToken = (username) => {
+  const payload = Buffer.from(JSON.stringify({ username, role: 'admin', expiresAt: Date.now() + (8 * 60 * 60 * 1000) })).toString('base64url');
+  const signature = crypto.createHmac('sha256', process.env.SESSION_SECRET || 'ptw-dev-secret').update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+};
+
+const verifyAdminToken = (token) => {
+  if (!token || !token.includes('.')) return null;
+  const [payload, signature] = token.split('.');
+  const expected = crypto.createHmac('sha256', process.env.SESSION_SECRET || 'ptw-dev-secret').update(payload).digest('base64url');
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (signatureBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return data.role === 'admin' && data.username && data.expiresAt > Date.now() ? data : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const setAdminAuthCookie = (res, username) => {
+  res.cookie(adminAuthCookie, signAdminToken(username), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProd,
+    maxAge: 8 * 60 * 60 * 1000,
+    path: '/'
+  });
+};
+
 const jsonResponse = (res, success, data = null, error = null, meta = {}) => {
   res.status(meta.status || 200).json({ success, data, error, meta });
 };
@@ -307,6 +341,16 @@ app.use(session({
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax', secure: isProd }
 }));
+
+app.use((req, res, next) => {
+  if (!req.session.user) {
+    const adminToken = verifyAdminToken(req.cookies?.[adminAuthCookie]);
+    if (adminToken) {
+      req.session.user = { id: 1, username: adminToken.username, role: 'admin' };
+    }
+  }
+  next();
+});
 
 const csrfMiddleware = csrf({ cookie: true });
 app.use((req, res, next) => {
@@ -630,6 +674,7 @@ app.post('/login', async (req, res) => {
       return jsonResponse(res, false, null, 'Invalid login', { status: 401 });
     }
     req.session.user = { id: 1, username: adminUsername, role: 'admin' };
+    setAdminAuthCookie(res, adminUsername);
     return req.session.save((error) => {
       if (error) {
         return jsonResponse(res, false, null, 'Login failed', { status: 500 });
@@ -646,6 +691,7 @@ app.post('/login', async (req, res) => {
     }
 
     req.session.user = { id: user.id, username: user.username, role: user.role };
+    setAdminAuthCookie(res, user.username);
     req.session.save((error) => {
       if (error) {
         return jsonResponse(res, false, null, 'Login failed', { status: 500 });
@@ -660,6 +706,7 @@ app.post('/login', async (req, res) => {
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('connect.sid');
+    res.clearCookie(adminAuthCookie);
     jsonResponse(res, true, null, null, { status: 200 });
   });
 });
