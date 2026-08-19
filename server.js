@@ -333,6 +333,7 @@ app.use(helmet({
 app.use(morgan(isProd ? 'combined' : 'dev'));
 
 app.get('/api/session', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   if (!req.session || !req.session.user) {
     return jsonResponse(res, true, { isLoggedIn: false, user: null }, null, { status: 200 });
   }
@@ -629,7 +630,12 @@ app.post('/login', async (req, res) => {
       return jsonResponse(res, false, null, 'Invalid login', { status: 401 });
     }
     req.session.user = { id: 1, username: adminUsername, role: 'admin' };
-    return jsonResponse(res, true, { username: adminUsername }, null, { status: 200 });
+    return req.session.save((error) => {
+      if (error) {
+        return jsonResponse(res, false, null, 'Login failed', { status: 500 });
+      }
+      return jsonResponse(res, true, { username: adminUsername }, null, { status: 200 });
+    });
   }
 
   try {
@@ -640,7 +646,12 @@ app.post('/login', async (req, res) => {
     }
 
     req.session.user = { id: user.id, username: user.username, role: user.role };
-    jsonResponse(res, true, { username: user.username }, null, { status: 200 });
+    req.session.save((error) => {
+      if (error) {
+        return jsonResponse(res, false, null, 'Login failed', { status: 500 });
+      }
+      return jsonResponse(res, true, { username: user.username }, null, { status: 200 });
+    });
   } catch (error) {
     jsonResponse(res, false, null, 'Login failed', { status: 500 });
   }

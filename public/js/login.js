@@ -20,6 +20,7 @@ form.addEventListener('submit', async (event) => {
       throw new Error(result.error || 'Login failed');
     }
 
+    await fetch('/api/session', { cache: 'no-store' });
     window.location.href = '/admin';
   } catch (error) {
     errorBox.textContent = error.message || 'Login failed';

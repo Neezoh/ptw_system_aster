@@ -8,7 +8,7 @@ const updateSessionBadge = async () => {
   if (!sessionBadge) return;
 
   try {
-    const response = await fetch('/api/session');
+    const response = await fetch('/api/session', { cache: 'no-store' });
     const payload = await response.json();
     const isLoggedIn = payload?.success && payload?.data?.isLoggedIn;
 

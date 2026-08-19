@@ -5,22 +5,33 @@ const recordsBody = document.getElementById('recordsBody');
 const saveButton = document.getElementById('saveButton');
 const refreshRecordsButton = document.getElementById('refreshRecordsBtn');
 let editingRecordId = null;
+let isAdmin = false;
 
 const updateSessionBadge = async () => {
   if (!sessionBadge) return;
 
   try {
-    const response = await fetch('/api/session');
+    const response = await fetch('/api/session', { cache: 'no-store' });
     const payload = await response.json();
-    const isLoggedIn = payload?.success && payload?.data?.isLoggedIn;
+    const isLoggedIn = payload?.success && payload?.data?.isLoggedIn && payload?.data?.user?.role === 'admin';
+    isAdmin = Boolean(isLoggedIn);
 
     sessionBadge.textContent = isLoggedIn ? 'Logged in as Admin' : 'Guest Access';
     sessionBadge.classList.toggle('admin', isLoggedIn);
     sessionBadge.classList.toggle('guest', !isLoggedIn);
+    form.querySelectorAll('input, select, textarea, button').forEach((control) => {
+      control.disabled = !isLoggedIn;
+    });
+    if (refreshRecordsButton) refreshRecordsButton.disabled = !isLoggedIn;
+    if (!isLoggedIn) setToast('Admin access required. Please log in again.');
   } catch (error) {
+    isAdmin = false;
     sessionBadge.textContent = 'Guest Access';
     sessionBadge.classList.remove('admin');
     sessionBadge.classList.add('guest');
+    form.querySelectorAll('input, select, textarea, button').forEach((control) => {
+      control.disabled = true;
+    });
   }
 };
 
@@ -122,6 +133,7 @@ const renderRecords = (records) => {
 };
 
 const loadRecords = async () => {
+  if (!isAdmin) return;
   try {
     const response = await fetch('/api/ptw?limit=50');
     const payload = await response.json();
@@ -155,6 +167,10 @@ const populateLookups = async () => {
 
 const handleSubmit = async (event) => {
   event.preventDefault();
+  if (!isAdmin) {
+    setToast('Admin access required. Please log in again.');
+    return;
+  }
   clearErrors();
 
   const formData = new FormData(form);
@@ -197,6 +213,12 @@ const handleSubmit = async (event) => {
 form.addEventListener('submit', handleSubmit);
 document.getElementById('resetBtn').addEventListener('click', resetFormState);
 refreshRecordsButton.addEventListener('click', loadRecords);
-updateSessionBadge();
-populateLookups();
-loadRecords();
+
+const initializeAdminPage = async () => {
+  await updateSessionBadge();
+  if (!isAdmin) return;
+  await populateLookups();
+  await loadRecords();
+};
+
+initializeAdminPage();
