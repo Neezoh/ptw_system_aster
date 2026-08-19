@@ -193,11 +193,15 @@ const demoUserHash = bcrypt.hashSync(adminPassword, 10);
 
 const bootstrapAdmin = async () => {
   try {
-    const [rows] = await pool.query('SELECT id FROM users WHERE username = ? LIMIT 1', [adminUsername]);
+    const [rows] = await pool.query('SELECT id, password_hash FROM users WHERE username = ? LIMIT 1', [adminUsername]);
     if (!rows.length) {
       const hash = await bcrypt.hash(adminPassword, 10);
       await pool.query('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', [adminUsername, hash, 'admin']);
       console.log(`Admin user created: ${adminUsername}`);
+    } else if (!(await bcrypt.compare(adminPassword, rows[0].password_hash))) {
+      const hash = await bcrypt.hash(adminPassword, 10);
+      await pool.query('UPDATE users SET password_hash = ?, role = ? WHERE id = ?', [hash, 'admin', rows[0].id]);
+      console.log(`Admin password synchronized: ${adminUsername}`);
     }
     dbAvailable = true;
   } catch (error) {
