@@ -213,7 +213,7 @@ const jsonResponse = (res, success, data = null, error = null, meta = {}) => {
 };
 
 const ensureAdmin = (req, res, next) => {
-  if (!req.session || !req.session.user) {
+  if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
     return jsonResponse(res, false, null, 'Admin access required', { status: 401 });
   }
   next();
@@ -306,7 +306,7 @@ app.use(session({
 
 const csrfMiddleware = csrf({ cookie: true });
 app.use((req, res, next) => {
-  if (req.method === 'GET' || req.path === '/login' || req.path === '/logout') {
+  if ((req.method === 'GET' && req.path !== '/api/csrf-token') || req.path === '/login' || req.path === '/logout') {
     return next();
   }
   return csrfMiddleware(req, res, next);
@@ -649,7 +649,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.post('/api/ptw', csrfProtection, ensureAdmin, async (req, res) => {
+app.post('/api/ptw', ensureAdmin, async (req, res) => {
   const payload = req.body || {};
   const errors = {};
 
@@ -743,7 +743,7 @@ app.post('/api/ptw', csrfProtection, ensureAdmin, async (req, res) => {
   }
 });
 
-app.put('/api/ptw/:id', csrfProtection, ensureAdmin, async (req, res) => {
+app.put('/api/ptw/:id', ensureAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const payload = req.body || {};
   if (!Number.isInteger(id)) {
@@ -795,6 +795,34 @@ app.put('/api/ptw/:id', csrfProtection, ensureAdmin, async (req, res) => {
 
   const [rows] = await pool.query('SELECT * FROM ptw_records WHERE id = ?', [id]);
   jsonResponse(res, true, rows[0], null, { status: 200 });
+});
+
+app.delete('/api/ptw/:id', ensureAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return jsonResponse(res, false, null, 'Invalid PTW ID', { status: 400 });
+  }
+
+  if (!dbAvailable) {
+    const recordIndex = fallbackRecords.findIndex((entry) => entry.id === id);
+    if (recordIndex === -1) {
+      return jsonResponse(res, false, null, 'PTW record not found', { status: 404 });
+    }
+
+    const [deletedRecord] = fallbackRecords.splice(recordIndex, 1);
+    return jsonResponse(res, true, deletedRecord, null, { status: 200 });
+  }
+
+  try {
+    const [result] = await pool.query('DELETE FROM ptw_records WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return jsonResponse(res, false, null, 'PTW record not found', { status: 404 });
+    }
+
+    jsonResponse(res, true, { id }, null, { status: 200 });
+  } catch (error) {
+    jsonResponse(res, false, null, 'Unable to delete PTW record', { status: 500 });
+  }
 });
 
 app.get('/api/csrf-token', (req, res) => {

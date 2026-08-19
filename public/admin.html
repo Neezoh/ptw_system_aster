@@ -25,6 +25,19 @@
         color: var(--text);
         border-radius: 10px;
       }
+      .form-group input[list] { background: var(--surface); }
+      .form-hint { color: var(--muted); font-size: 0.78rem; }
+      .record-manager { margin-top: 20px; }
+      .record-manager-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+      .record-table-wrap { overflow-x: auto; }
+      .record-table { width: 100%; min-width: 720px; border-collapse: collapse; }
+      .record-table th, .record-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+      .record-table th { color: var(--muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; }
+      .record-actions { display: flex; gap: 8px; }
+      .record-actions button { min-height: 36px; padding: 0 12px; border-radius: 9px; font-weight: 700; }
+      .edit-button { background: var(--blue-soft); color: #d9eeff; border: 1px solid rgba(76,155,214,0.4); }
+      .delete-button { background: var(--danger-soft); color: #ffd8cf; border: 1px solid rgba(217,106,77,0.4); }
+      .empty-records { color: var(--muted); padding: 16px 10px; }
       textarea { min-height: 120px; resize: vertical; }
       .inline-error { color: #ffb3b3; font-size: 0.8rem; }
       .toast {
@@ -65,7 +78,9 @@
             </div>
             <div class="form-group">
               <label for="location">Location</label>
-              <select id="location" name="location"></select>
+              <input id="location" name="location" list="locationOptions" autocomplete="off" required />
+              <datalist id="locationOptions"></datalist>
+              <span class="form-hint">Select an existing location or type a new one.</span>
               <span class="inline-error" data-error-for="location"></span>
             </div>
             <div class="form-group">
@@ -83,19 +98,18 @@
             </div>
             <div class="form-group">
               <label for="work_leader">Work Leader</label>
-              <select id="work_leader" name="work_leader"></select>
+              <input id="work_leader" name="work_leader" list="personnelOptions" autocomplete="off" required />
               <span class="inline-error" data-error-for="work_leader"></span>
             </div>
             <div class="form-group">
               <label for="authorised_authority">Authorised Authority</label>
-              <select id="authorised_authority" name="authorised_authority"></select>
+              <input id="authorised_authority" name="authorised_authority" list="personnelOptions" autocomplete="off" required />
               <span class="inline-error" data-error-for="authorised_authority"></span>
             </div>
             <div class="form-group">
               <label for="authorised_authority_rep">Authorised Authority Rep</label>
-              <select id="authorised_authority_rep" name="authorised_authority_rep">
-                <option value="">-- None --</option>
-              </select>
+              <input id="authorised_authority_rep" name="authorised_authority_rep" list="personnelOptions" autocomplete="off" />
+              <span class="form-hint">Optional. Select an existing name or type a new one.</span>
               <span class="inline-error" data-error-for="authorised_authority_rep"></span>
             </div>
             <div class="form-group">
@@ -133,12 +147,32 @@
           </div>
 
           <div class="search-actions">
-            <button class="primary-button" type="submit">Save PTW</button>
+            <button class="primary-button" type="submit" id="saveButton">Save PTW</button>
             <button class="secondary-button" type="button" id="resetBtn">Reset</button>
           </div>
         </form>
       </main>
+
+      <section class="admin-card record-manager">
+        <div class="record-manager-header">
+          <div>
+            <p class="eyebrow">ADMIN CRUD</p>
+            <h2>Existing PTW Records</h2>
+          </div>
+          <button class="secondary-button" type="button" id="refreshRecordsBtn">Refresh</button>
+        </div>
+        <div class="record-table-wrap">
+          <table class="record-table">
+            <thead>
+              <tr><th>PTW Number</th><th>Location</th><th>Applicant</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="recordsBody"><tr><td class="empty-records" colspan="5">Loading records...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
     </div>
+
+    <datalist id="personnelOptions"></datalist>
 
     <div id="toast" class="toast" aria-live="polite"></div>
 
