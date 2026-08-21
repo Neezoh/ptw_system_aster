@@ -17,6 +17,7 @@ const filterAuthority = document.getElementById('filterAuthority');
 const getStatusClass = (status) => ({
   Open: 'status-open',
   Extended: 'status-extended',
+  Returned: 'status-extended',
   Suspended: 'status-suspended',
   Closed: 'status-closed'
 }[status] || 'status-closed');

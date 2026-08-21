@@ -10,11 +10,13 @@ const fields = {
   jhaNumber: document.getElementById('jhaNumber'),
   permitType: document.getElementById('permitType'),
   location: document.getElementById('location'),
+  specificLocation: document.getElementById('specificLocation'),
   workDescription: document.getElementById('workDescription'),
   applicantName: document.getElementById('applicantName'),
   workLeader: document.getElementById('workLeader'),
   authority: document.getElementById('authority'),
   authorityRep: document.getElementById('authorityRep'),
+  hseOfficerAssessor: document.getElementById('hseOfficerAssessor'),
   dateIssued: document.getElementById('dateIssued'),
   dateClosed: document.getElementById('dateClosed'),
   statusValue: document.getElementById('statusValue'),
@@ -26,6 +28,7 @@ const statusClass = (status) => ({
   Open: 'status-open',
   Extended: 'status-extended',
   Suspended: 'status-suspended',
+  Returned: 'status-extended',
   Closed: 'status-closed'
 }[status] || 'status-closed');
 
@@ -50,11 +53,13 @@ const renderRecord = (record) => {
   fields.jhaNumber.textContent = record.jha_number;
   fields.permitType.textContent = record.permit_type;
   fields.location.textContent = record.location;
+  fields.specificLocation.textContent = record.specific_location || '—';
   fields.workDescription.textContent = record.work_description;
   fields.applicantName.textContent = record.permit_applicant_name;
   fields.workLeader.textContent = record.work_leader;
   fields.authority.textContent = record.authorised_authority;
   fields.authorityRep.textContent = record.authorised_authority_rep || '—';
+  fields.hseOfficerAssessor.textContent = record.hse_officer_assessor || '—';
   fields.dateIssued.textContent = record.date_issued;
   fields.dateClosed.textContent = record.date_closed || '—';
   fields.statusValue.textContent = record.status;

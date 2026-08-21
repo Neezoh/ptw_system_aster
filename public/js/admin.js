@@ -4,6 +4,10 @@ const sessionBadge = document.getElementById('sessionBadge');
 const recordsBody = document.getElementById('recordsBody');
 const saveButton = document.getElementById('saveButton');
 const refreshRecordsButton = document.getElementById('refreshRecordsBtn');
+const permitTypeField = document.getElementById('permit_type');
+const dateIssuedField = document.getElementById('date_issued');
+const dateClosedField = document.getElementById('date_closed');
+const statusField = document.getElementById('status');
 let editingRecordId = null;
 let isAdmin = false;
 
@@ -64,13 +68,46 @@ const resetFormState = () => {
   form.reset();
   clearErrors();
   saveButton.textContent = 'Save PTW';
+  updatePermitRules();
 };
 
 const editRecord = (record) => {
   editingRecordId = record.id;
   Object.entries(record).forEach(([name, value]) => setFormValue(name, value));
   saveButton.textContent = 'Update PTW';
+  updatePermitRules();
   form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const updatePermitRules = () => {
+  if (!permitTypeField || !dateIssuedField || !dateClosedField || !statusField) return;
+  const isHot = permitTypeField.value === 'Hot';
+  const issuedDate = dateIssuedField.value;
+  const currentStatus = statusField.value;
+  const statuses = isHot
+    ? [['Open', 'Issued'], ['Closed', 'Closed'], ['Suspended', 'Suspended']]
+    : [['Open', 'Issued'], ['Closed', 'Closed'], ['Suspended', 'Suspended'], ['Returned', 'Returned']];
+
+  if (currentStatus === 'Extended') statuses.push(['Extended', 'Legacy Extended']);
+  statusField.innerHTML = statuses.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+  statusField.value = statuses.some(([value]) => value === currentStatus) ? currentStatus : 'Open';
+
+  dateClosedField.readOnly = isHot;
+  if (isHot && issuedDate) {
+    dateClosedField.value = ['Closed', 'Suspended'].includes(statusField.value) ? issuedDate : '';
+    dateClosedField.min = issuedDate;
+    dateClosedField.max = issuedDate;
+  } else if (issuedDate) {
+    const latest = new Date(`${issuedDate}T00:00:00Z`);
+    latest.setUTCDate(latest.getUTCDate() + 7);
+    dateClosedField.readOnly = false;
+    dateClosedField.min = issuedDate;
+    dateClosedField.max = latest.toISOString().slice(0, 10);
+  } else {
+    dateClosedField.readOnly = false;
+    dateClosedField.removeAttribute('min');
+    dateClosedField.removeAttribute('max');
+  }
 };
 
 const getCsrfToken = async () => {
@@ -211,6 +248,9 @@ const handleSubmit = async (event) => {
 };
 
 form.addEventListener('submit', handleSubmit);
+permitTypeField.addEventListener('change', updatePermitRules);
+dateIssuedField.addEventListener('change', updatePermitRules);
+statusField.addEventListener('change', updatePermitRules);
 document.getElementById('resetBtn').addEventListener('click', resetFormState);
 refreshRecordsButton.addEventListener('click', loadRecords);
 

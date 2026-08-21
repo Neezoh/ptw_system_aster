@@ -68,8 +68,20 @@
           <div class="admin-grid">
             <div class="form-group">
               <label for="ptw_number">PTW Number</label>
-              <input id="ptw_number" name="ptw_number" required />
+              <input id="ptw_number" name="ptw_number" readonly placeholder="Generated after site tag is selected" />
               <span class="inline-error" data-error-for="ptw_number"></span>
+            </div>
+            <div class="form-group">
+              <label for="site_tag">Site / Location Tag</label>
+              <select id="site_tag" name="site_tag" required>
+                <option value="">Select site tag</option>
+                <option value="KWN">KWN</option>
+                <option value="KAB">KAB</option>
+                <option value="MSI">MSI</option>
+                <option value="RSMT">RSMT</option>
+              </select>
+              <span class="form-hint">New PTW numbers use PTW-ASTER-[TAG]-XXXX.</span>
+              <span class="inline-error" data-error-for="site_tag"></span>
             </div>
             <div class="form-group">
               <label for="jha_number">JHA Number</label>
@@ -82,6 +94,11 @@
               <datalist id="locationOptions"></datalist>
               <span class="form-hint">Select an existing location or type a new one.</span>
               <span class="inline-error" data-error-for="location"></span>
+            </div>
+            <div class="form-group">
+              <label for="specific_location">Specific Location</label>
+              <input id="specific_location" name="specific_location" autocomplete="off" required />
+              <span class="inline-error" data-error-for="specific_location"></span>
             </div>
             <div class="form-group">
               <label for="permit_applicant_name">Permit Applicant Name</label>
@@ -113,6 +130,11 @@
               <span class="inline-error" data-error-for="authorised_authority_rep"></span>
             </div>
             <div class="form-group">
+              <label for="hse_officer_assessor">HSE Officer / Assessor</label>
+              <input id="hse_officer_assessor" name="hse_officer_assessor" list="personnelOptions" autocomplete="off" />
+              <span class="inline-error" data-error-for="hse_officer_assessor"></span>
+            </div>
+            <div class="form-group">
               <label for="date_issued">Date Issued</label>
               <input id="date_issued" name="date_issued" type="date" required />
               <span class="inline-error" data-error-for="date_issued"></span>
@@ -128,7 +150,7 @@
                 <option value="Open">Open</option>
                 <option value="Closed">Closed</option>
                 <option value="Suspended">Suspended</option>
-                <option value="Extended">Extended</option>
+                <option value="Returned">Returned</option>
               </select>
               <span class="inline-error" data-error-for="status"></span>
             </div>

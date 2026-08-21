@@ -193,8 +193,23 @@ const makeDemoRecords = () => {
 const fallbackRecords = makeDemoRecords();
 const demoUserHash = bcrypt.hashSync(adminPassword, 10);
 
+const migratePtwSchema = async () => {
+  const migrations = [
+    'ALTER TABLE ptw_records MODIFY COLUMN ptw_number VARCHAR(50) NOT NULL',
+    "ALTER TABLE ptw_records ADD COLUMN IF NOT EXISTS site_tag ENUM('KWN','KAB','MSI','RSMT') NULL AFTER ptw_number",
+    'ALTER TABLE ptw_records ADD COLUMN IF NOT EXISTS specific_location VARCHAR(180) NULL AFTER location',
+    'ALTER TABLE ptw_records ADD COLUMN IF NOT EXISTS hse_officer_assessor VARCHAR(120) NULL AFTER authorised_authority_rep',
+    "ALTER TABLE ptw_records MODIFY COLUMN status ENUM('Open','Closed','Suspended','Returned','Extended') NOT NULL"
+  ];
+
+  for (const migration of migrations) {
+    await pool.query(migration);
+  }
+};
+
 const bootstrapAdmin = async () => {
   try {
+    await migratePtwSchema();
     const [rows] = await pool.query('SELECT id, password_hash FROM users WHERE username = ? LIMIT 1', [adminUsername]);
     if (!rows.length) {
       const hash = await bcrypt.hash(adminPassword, 10);
@@ -301,6 +316,66 @@ const filterFallbackRecords = (req) => {
   return filtered;
 };
 
+const siteTags = new Set(['KWN', 'KAB', 'MSI', 'RSMT']);
+const allowedStatuses = new Set(['Open', 'Closed', 'Suspended', 'Returned']);
+
+const dateOnly = (value) => {
+  const match = /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+  return match ? new Date(`${value}T00:00:00Z`) : null;
+};
+
+const validatePtwPayload = (payload, { requireSiteTag = true } = {}) => {
+  const errors = {};
+  const enforceNewRules = requireSiteTag || Boolean(payload.site_tag);
+  const issued = dateOnly(payload.date_issued);
+  const closed = payload.date_closed ? dateOnly(payload.date_closed) : null;
+  const permitType = String(payload.permit_type || '');
+  const status = String(payload.status || '');
+
+  if (requireSiteTag && !siteTags.has(String(payload.site_tag || ''))) errors.site_tag = 'Select a valid site tag';
+  if (!/^JHA-\d{4}-\d{5}$/.test(String(payload.jha_number || ''))) errors.jha_number = 'JHA/JSA number must match JHA-YYYY-XXXXX';
+  if (!payload.location) errors.location = 'Location is required';
+  if (enforceNewRules && !payload.specific_location) errors.specific_location = 'Specific location is required';
+  if (!payload.permit_applicant_name) errors.permit_applicant_name = 'Permit applicant is required';
+  if (!['Cold', 'Hot'].includes(permitType)) errors.permit_type = 'Permit type must be Hot or Cold';
+  if (!payload.work_description || !String(payload.work_description).trim()) errors.work_description = 'Description is required';
+  if (!payload.work_leader) errors.work_leader = 'Work Leader is required';
+  if (!payload.authorised_authority) errors.authorised_authority = 'Area Authority is required';
+  if (!issued) errors.date_issued = 'Date Issued must be a valid date';
+  if (!allowedStatuses.has(status) && !(status === 'Extended' && !enforceNewRules)) errors.status = 'Select a valid lifecycle status';
+
+  if (enforceNewRules && issued && closed) {
+    const days = Math.round((closed.getTime() - issued.getTime()) / 86400000);
+    if (days < 0) errors.date_closed = 'Date Closed cannot be before Date Issued';
+    if (permitType === 'Hot' && days !== 0) errors.date_closed = 'Hot Work must close on the Date Issued day';
+    if (permitType === 'Cold' && days > 7) errors.date_closed = 'Cold Work cannot close more than 7 days after Date Issued';
+  }
+
+  if (enforceNewRules && permitType === 'Hot' && ['Closed', 'Suspended'].includes(status) && !closed) {
+    errors.date_closed = 'Hot Work requires Date Closed to match Date Issued';
+  }
+  if (enforceNewRules && status === 'Closed' && !closed) errors.date_closed = 'Closed permits require Date Closed';
+  if (enforceNewRules && permitType === 'Hot' && status === 'Returned') errors.status = 'Returned is only available for Cold Work';
+
+  return errors;
+};
+
+const nextPtwNumber = async (siteTag) => {
+  const prefix = `PTW-ASTER-${siteTag}-`;
+  if (!dbAvailable) {
+    const numbers = fallbackRecords
+      .filter((record) => record.ptw_number.startsWith(prefix))
+      .map((record) => Number(record.ptw_number.slice(prefix.length)))
+      .filter(Number.isInteger);
+    const next = (numbers.length ? Math.max(...numbers) : 0) + 1;
+    return `${prefix}${String(next).padStart(4, '0')}`;
+  }
+
+  const [rows] = await pool.query('SELECT ptw_number FROM ptw_records WHERE ptw_number LIKE ? ORDER BY ptw_number DESC LIMIT 1', [`${prefix}%`]);
+  const current = rows[0] ? Number(String(rows[0].ptw_number).slice(prefix.length)) : 0;
+  return `${prefix}${String((Number.isInteger(current) ? current : 0) + 1).padStart(4, '0')}`;
+};
+
 const summaryFallbackData = () => {
   const total = fallbackRecords.length;
   const summary = {
@@ -308,7 +383,7 @@ const summaryFallbackData = () => {
     open_ptw: fallbackRecords.filter((record) => record.status === 'Open').length,
     closed_ptw: fallbackRecords.filter((record) => record.status === 'Closed').length,
     suspended_ptw: fallbackRecords.filter((record) => record.status === 'Suspended').length,
-    extended_ptw: fallbackRecords.filter((record) => record.status === 'Extended').length,
+    extended_ptw: fallbackRecords.filter((record) => record.status === 'Extended' || record.status === 'Returned').length,
     hot_active: fallbackRecords.filter((record) => record.status === 'Open' && record.permit_type === 'Hot').length,
     cold_active: fallbackRecords.filter((record) => record.status === 'Open' && record.permit_type === 'Cold').length
   };
@@ -713,53 +788,36 @@ app.post('/logout', (req, res) => {
 
 app.post('/api/ptw', ensureAdmin, async (req, res) => {
   const payload = req.body || {};
-  const errors = {};
-
-  if (!/^PTW-\d{4}-\d{5}$/.test(String(payload.ptw_number || ''))) {
-    errors.ptw_number = 'PTW number must match PTW-YYYY-XXXXX';
-  }
-  if (!/^JHA-\d{4}-\d{5}$/.test(String(payload.jha_number || ''))) {
-    errors.jha_number = 'JHA number must match JHA-YYYY-XXXXX';
-  }
-  if (!payload.location) errors.location = 'Location is required';
-  if (!payload.permit_applicant_name) errors.permit_applicant_name = 'Applicant name is required';
-  if (!payload.permit_type) errors.permit_type = 'Permit type is required';
-  if (!payload.work_description || !String(payload.work_description).trim()) errors.work_description = 'Description is required';
-  if (!payload.work_leader) errors.work_leader = 'Work leader is required';
-  if (!payload.authorised_authority) errors.authorised_authority = 'Authorised authority is required';
-  if (!payload.date_issued) errors.date_issued = 'Date issued is required';
-  if (payload.status === 'Closed' && !payload.date_closed) errors.date_closed = 'Date closed is required when status is Closed';
-  if (payload.status !== 'Closed' && payload.date_closed) errors.date_closed = 'Date closed must be null unless permit is Closed';
-  if (payload.date_issued && payload.date_closed && new Date(payload.date_closed) < new Date(payload.date_issued)) {
-    errors.date_closed = 'Date closed must be on or after date issued';
-  }
-  if (payload.permit_type === 'Hot' && (!payload.remark || !String(payload.remark).trim())) {
-    errors.remark = 'Hot permits require a remark';
-  }
+  const errors = validatePtwPayload(payload);
 
   if (Object.keys(errors).length) {
     return jsonResponse(res, false, { fieldErrors: errors }, 'Validation failed', { status: 400 });
   }
 
+  const generatedPtwNumber = await nextPtwNumber(payload.site_tag);
+
   if (!dbAvailable) {
-    const duplicate = fallbackRecords.find((record) => record.ptw_number === payload.ptw_number);
+    const duplicate = fallbackRecords.find((record) => record.ptw_number === generatedPtwNumber);
     if (duplicate) {
-      return jsonResponse(res, false, { fieldErrors: { ptw_number: 'PTW number already exists' } }, 'Validation failed', { status: 409 });
+      return jsonResponse(res, false, { fieldErrors: { site_tag: 'Unable to generate a unique PTW number' } }, 'Validation failed', { status: 409 });
     }
 
     const newRecord = {
       id: fallbackRecords.length + 1,
-      ptw_number: payload.ptw_number,
+      ptw_number: generatedPtwNumber,
+      site_tag: payload.site_tag,
       jha_number: payload.jha_number,
       location: payload.location,
+      specific_location: payload.specific_location,
       permit_applicant_name: payload.permit_applicant_name,
       permit_type: payload.permit_type,
       work_description: payload.work_description,
       work_leader: payload.work_leader,
       authorised_authority: payload.authorised_authority,
       authorised_authority_rep: payload.authorised_authority_rep || null,
+      hse_officer_assessor: payload.hse_officer_assessor || null,
       date_issued: payload.date_issued,
-      date_closed: payload.status === 'Closed' ? payload.date_closed : null,
+      date_closed: payload.date_closed || null,
       status: payload.status,
       remark: payload.remark || null,
       created_at: new Date().toISOString(),
@@ -770,29 +828,32 @@ app.post('/api/ptw', ensureAdmin, async (req, res) => {
   }
 
   try {
-    const [duplicate] = await pool.query('SELECT id FROM ptw_records WHERE ptw_number = ? LIMIT 1', [payload.ptw_number]);
+    const [duplicate] = await pool.query('SELECT id FROM ptw_records WHERE ptw_number = ? LIMIT 1', [generatedPtwNumber]);
     if (duplicate.length) {
-      return jsonResponse(res, false, { fieldErrors: { ptw_number: 'PTW number already exists' } }, 'Validation failed', { status: 409 });
+      return jsonResponse(res, false, { fieldErrors: { site_tag: 'Unable to generate a unique PTW number' } }, 'Validation failed', { status: 409 });
     }
 
     const [result] = await pool.query(
       `INSERT INTO ptw_records (
-        ptw_number, jha_number, location, permit_applicant_name, permit_type,
-        work_description, work_leader, authorised_authority, authorised_authority_rep,
+        ptw_number, site_tag, jha_number, location, specific_location, permit_applicant_name, permit_type,
+        work_description, work_leader, authorised_authority, authorised_authority_rep, hse_officer_assessor,
         date_issued, date_closed, status, remark
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
       [
-        payload.ptw_number,
+        generatedPtwNumber,
+        payload.site_tag,
         payload.jha_number,
         payload.location,
+        payload.specific_location,
         payload.permit_applicant_name,
         payload.permit_type,
         payload.work_description,
         payload.work_leader,
         payload.authorised_authority,
         payload.authorised_authority_rep || null,
+        payload.hse_officer_assessor || null,
         payload.date_issued,
-        payload.status === 'Closed' ? payload.date_closed : null,
+        payload.date_closed || null,
         payload.status,
         payload.remark || null
       ]
@@ -812,6 +873,11 @@ app.put('/api/ptw/:id', ensureAdmin, async (req, res) => {
     return jsonResponse(res, false, null, 'Invalid PTW ID', { status: 400 });
   }
 
+  const errors = validatePtwPayload(payload, { requireSiteTag: false });
+  if (Object.keys(errors).length) {
+    return jsonResponse(res, false, { fieldErrors: errors }, 'Validation failed', { status: 400 });
+  }
+
   if (!dbAvailable) {
     const recordIndex = fallbackRecords.findIndex((entry) => entry.id === id);
     if (recordIndex === -1) {
@@ -829,22 +895,25 @@ app.put('/api/ptw/:id', ensureAdmin, async (req, res) => {
 
   const [result] = await pool.query(
     `UPDATE ptw_records SET
-      ptw_number = ?, jha_number = ?, location = ?, permit_applicant_name = ?, permit_type = ?,
-      work_description = ?, work_leader = ?, authorised_authority = ?, authorised_authority_rep = ?,
+      ptw_number = ?, site_tag = ?, jha_number = ?, location = ?, specific_location = ?, permit_applicant_name = ?, permit_type = ?,
+      work_description = ?, work_leader = ?, authorised_authority = ?, authorised_authority_rep = ?, hse_officer_assessor = ?,
       date_issued = ?, date_closed = ?, status = ?, remark = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?`,
     [
       payload.ptw_number || existing[0].ptw_number,
+      payload.site_tag || existing[0].site_tag,
       payload.jha_number || existing[0].jha_number,
       payload.location || existing[0].location,
+      payload.specific_location || existing[0].specific_location,
       payload.permit_applicant_name || existing[0].permit_applicant_name,
       payload.permit_type || existing[0].permit_type,
       payload.work_description || existing[0].work_description,
       payload.work_leader || existing[0].work_leader,
       payload.authorised_authority || existing[0].authorised_authority,
       payload.authorised_authority_rep ?? existing[0].authorised_authority_rep,
+      payload.hse_officer_assessor ?? existing[0].hse_officer_assessor,
       payload.date_issued || existing[0].date_issued,
-      payload.status === 'Closed' ? (payload.date_closed || existing[0].date_closed) : null,
+      payload.date_closed ?? existing[0].date_closed,
       payload.status || existing[0].status,
       payload.remark ?? existing[0].remark,
       id
