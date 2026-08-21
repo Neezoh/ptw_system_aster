@@ -14,6 +14,8 @@ const permitTypeField = document.getElementById('permit_type');
 const dateIssuedField = document.getElementById('date_issued');
 const dateClosedField = document.getElementById('date_closed');
 const statusField = document.getElementById('status');
+const siteTagField = document.getElementById('site_tag');
+const ptwNumberField = document.getElementById('ptw_number');
 let editingRecordId = null;
 let isAdmin = false;
 
@@ -85,6 +87,24 @@ const editRecord = (record) => {
   saveButton.textContent = 'Update PTW';
   updatePermitRules();
   form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const previewNextPtwNumber = async () => {
+  if (!siteTagField || !ptwNumberField || editingRecordId || !siteTagField.value || !isAdmin) {
+    if (!siteTagField?.value && !editingRecordId && ptwNumberField) ptwNumberField.value = '';
+    return;
+  }
+
+  ptwNumberField.value = 'Generating...';
+  try {
+    const response = await fetch(`/api/ptw/next-number/${encodeURIComponent(siteTagField.value)}`, { cache: 'no-store' });
+    const payload = await response.json();
+    if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to generate PTW number');
+    ptwNumberField.value = payload.data.ptw_number;
+  } catch (error) {
+    ptwNumberField.value = '';
+    setToast(error.message || 'Unable to generate PTW number');
+  }
 };
 
 const updatePermitRules = () => {
@@ -292,6 +312,7 @@ const handleSubmit = async (event) => {
 };
 
 form.addEventListener('submit', handleSubmit);
+siteTagField.addEventListener('change', previewNextPtwNumber);
 permitTypeField.addEventListener('change', updatePermitRules);
 dateIssuedField.addEventListener('change', updatePermitRules);
 statusField.addEventListener('change', updatePermitRules);
@@ -307,6 +328,7 @@ const initializeAdminPage = async () => {
   await updateSessionBadge();
   if (!isAdmin) return;
   await populateLookups();
+  await previewNextPtwNumber();
   await loadRecords();
 };
 

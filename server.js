@@ -523,6 +523,20 @@ app.get('/api/lookups', async (req, res) => {
   }
 });
 
+app.get('/api/ptw/next-number/:siteTag', ensureAdmin, async (req, res) => {
+  const siteTag = String(req.params.siteTag || '').toUpperCase();
+  if (!siteTags.has(siteTag)) {
+    return jsonResponse(res, false, null, 'Invalid site tag', { status: 400 });
+  }
+
+  try {
+    const ptwNumber = await nextPtwNumber(siteTag);
+    jsonResponse(res, true, { ptw_number: ptwNumber, site_tag: siteTag }, null, { status: 200 });
+  } catch (error) {
+    jsonResponse(res, false, null, 'Unable to generate PTW number', { status: 500 });
+  }
+});
+
 app.get('/api/ptw/suggest', rateLimitSuggest, async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (q.length < 2) {
