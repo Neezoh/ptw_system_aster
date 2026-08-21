@@ -47,3 +47,16 @@ CREATE TABLE IF NOT EXISTS ptw_records (
   KEY idx_permit_type (permit_type),
   FULLTEXT KEY ft_work_description (work_description)
 );
+
+CREATE TABLE IF NOT EXISTS ptw_batch_submissions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  batch_reference VARCHAR(40) NOT NULL UNIQUE,
+  record_count INT NOT NULL,
+  record_ids JSON NOT NULL,
+  action VARCHAR(40) NOT NULL,
+  status VARCHAR(30) NOT NULL,
+  notes TEXT NULL,
+  submitted_by VARCHAR(80) NOT NULL,
+  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_batch_submitted_at (submitted_at)
+);

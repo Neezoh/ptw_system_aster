@@ -38,6 +38,14 @@
       .edit-button { background: var(--blue-soft); color: #d9eeff; border: 1px solid rgba(76,155,214,0.4); }
       .delete-button { background: var(--danger-soft); color: #ffd8cf; border: 1px solid rgba(217,106,77,0.4); }
       .empty-records { color: var(--muted); padding: 16px 10px; }
+      .batch-toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(160px, 220px) minmax(160px, 220px); gap: 12px; align-items: end; margin-bottom: 16px; }
+      .batch-toolbar label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 0.82rem; }
+      .batch-toolbar input, .batch-toolbar select { min-height: 42px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 9px; }
+      .batch-notes { grid-column: 1 / -1; }
+      .batch-actions { display: flex; gap: 10px; align-items: center; grid-column: 1 / -1; }
+      .batch-count { color: var(--muted); font-size: 0.84rem; }
+      .record-check { width: 18px; height: 18px; accent-color: var(--accent); }
+      @media (max-width: 720px) { .batch-toolbar { grid-template-columns: 1fr; } .batch-notes, .batch-actions { grid-column: auto; } }
       textarea { min-height: 120px; resize: vertical; }
       .inline-error { color: #ffb3b3; font-size: 0.8rem; }
       .toast {
@@ -183,12 +191,40 @@
           </div>
           <button class="secondary-button" type="button" id="refreshRecordsBtn">Refresh</button>
         </div>
+        <div class="batch-toolbar">
+          <label>
+            Batch status update
+            <select id="batchStatus">
+              <option value="">Select status</option>
+              <option value="Open">Issued / Open</option>
+              <option value="Closed">Closed</option>
+              <option value="Suspended">Suspended</option>
+              <option value="Returned">Returned</option>
+            </select>
+          </label>
+          <label>
+            Batch Date Closed
+            <input id="batchDateClosed" type="date" />
+          </label>
+          <label>
+            Selected records
+            <span class="batch-count" id="batchCount">0 selected</span>
+          </label>
+          <label class="batch-notes">
+            Batch notes / compiled log reference
+            <input id="batchNotes" type="text" maxlength="2000" placeholder="Optional operational note" />
+          </label>
+          <div class="batch-actions">
+            <button class="primary-button" type="button" id="submitBatchBtn">Submit Batch Update</button>
+            <span class="form-hint">This records a batch update for PTW logs. It does not approve permits.</span>
+          </div>
+        </div>
         <div class="record-table-wrap">
           <table class="record-table">
             <thead>
-              <tr><th>PTW Number</th><th>Location</th><th>Applicant</th><th>Status</th><th>Actions</th></tr>
+              <tr><th><input id="selectAllRecords" class="record-check" type="checkbox" aria-label="Select all records" /></th><th>PTW Number</th><th>Location</th><th>Applicant</th><th>Status</th><th>Actions</th></tr>
             </thead>
-            <tbody id="recordsBody"><tr><td class="empty-records" colspan="5">Loading records...</td></tr></tbody>
+            <tbody id="recordsBody"><tr><td class="empty-records" colspan="6">Loading records...</td></tr></tbody>
           </table>
         </div>
       </section>

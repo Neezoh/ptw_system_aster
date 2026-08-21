@@ -4,6 +4,12 @@ const sessionBadge = document.getElementById('sessionBadge');
 const recordsBody = document.getElementById('recordsBody');
 const saveButton = document.getElementById('saveButton');
 const refreshRecordsButton = document.getElementById('refreshRecordsBtn');
+const selectAllRecords = document.getElementById('selectAllRecords');
+const batchStatus = document.getElementById('batchStatus');
+const batchDateClosed = document.getElementById('batchDateClosed');
+const batchNotes = document.getElementById('batchNotes');
+const batchCount = document.getElementById('batchCount');
+const submitBatchButton = document.getElementById('submitBatchBtn');
 const permitTypeField = document.getElementById('permit_type');
 const dateIssuedField = document.getElementById('date_issued');
 const dateClosedField = document.getElementById('date_closed');
@@ -27,6 +33,7 @@ const updateSessionBadge = async () => {
       control.disabled = !isLoggedIn;
     });
     if (refreshRecordsButton) refreshRecordsButton.disabled = !isLoggedIn;
+    [selectAllRecords, batchStatus, batchDateClosed, batchNotes, submitBatchButton].forEach((control) => { if (control) control.disabled = !isLoggedIn; });
     if (!isLoggedIn) setToast('Admin access required. Please log in again.');
   } catch (error) {
     isAdmin = false;
@@ -36,6 +43,7 @@ const updateSessionBadge = async () => {
     form.querySelectorAll('input, select, textarea, button').forEach((control) => {
       control.disabled = true;
     });
+    [selectAllRecords, batchStatus, batchDateClosed, batchNotes, submitBatchButton].forEach((control) => { if (control) control.disabled = true; });
   }
 };
 
@@ -136,14 +144,47 @@ const deleteRecord = async (id, ptwNumber) => {
   }
 };
 
+const updateBatchCount = () => {
+  const count = recordsBody.querySelectorAll('input[data-record-id]:checked').length;
+  batchCount.textContent = `${count} selected`;
+  return count;
+};
+
+const submitBatch = async () => {
+  if (!isAdmin) return setToast('Admin access required. Please log in again.');
+  const recordIds = [...recordsBody.querySelectorAll('input[data-record-id]:checked')].map((input) => Number(input.dataset.recordId));
+  if (!recordIds.length) return setToast('Select at least one PTW record.');
+  if (!batchStatus.value) return setToast('Select a batch status.');
+  if (!window.confirm(`Submit this update for ${recordIds.length} PTW record(s)?`)) return;
+
+  try {
+    const response = await fetch('/api/ptw/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'CSRF-Token': await getCsrfToken() },
+      body: JSON.stringify({ record_ids: recordIds, status: batchStatus.value, date_closed: batchDateClosed.value, notes: batchNotes.value })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) throw new Error(result.error || 'Unable to submit batch update');
+    setToast(`Batch ${result.data.submission.batch_reference} submitted for ${recordIds.length} record(s).`);
+    batchStatus.value = '';
+    batchDateClosed.value = '';
+    batchNotes.value = '';
+    selectAllRecords.checked = false;
+    await loadRecords();
+  } catch (error) {
+    setToast(error.message || 'Unable to submit batch update');
+  }
+};
+
 const renderRecords = (records) => {
   if (!records.length) {
-    recordsBody.innerHTML = '<tr><td class="empty-records" colspan="5">No PTW records found.</td></tr>';
+    recordsBody.innerHTML = '<tr><td class="empty-records" colspan="6">No PTW records found.</td></tr>';
     return;
   }
 
   recordsBody.innerHTML = records.map((record) => `
     <tr>
+      <td><input class="record-check" type="checkbox" data-record-id="${record.id}" aria-label="Select ${escapeHtml(record.ptw_number)}" /></td>
       <td><strong>${escapeHtml(record.ptw_number)}</strong></td>
       <td>${escapeHtml(record.location)}</td>
       <td>${escapeHtml(record.permit_applicant_name)}</td>
@@ -167,6 +208,9 @@ const renderRecords = (records) => {
   recordsBody.querySelectorAll('[data-delete-id]').forEach((button) => {
     button.addEventListener('click', () => deleteRecord(Number(button.dataset.deleteId), button.dataset.deleteNumber));
   });
+  recordsBody.querySelectorAll('input[data-record-id]').forEach((input) => input.addEventListener('change', updateBatchCount));
+  selectAllRecords.checked = false;
+  updateBatchCount();
 };
 
 const loadRecords = async () => {
@@ -177,7 +221,7 @@ const loadRecords = async () => {
     if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to load PTW records');
     renderRecords(payload.data || []);
   } catch (error) {
-    recordsBody.innerHTML = `<tr><td class="empty-records" colspan="5">${escapeHtml(error.message || 'Unable to load PTW records')}</td></tr>`;
+    recordsBody.innerHTML = `<tr><td class="empty-records" colspan="6">${escapeHtml(error.message || 'Unable to load PTW records')}</td></tr>`;
   }
 };
 
@@ -253,6 +297,11 @@ dateIssuedField.addEventListener('change', updatePermitRules);
 statusField.addEventListener('change', updatePermitRules);
 document.getElementById('resetBtn').addEventListener('click', resetFormState);
 refreshRecordsButton.addEventListener('click', loadRecords);
+selectAllRecords.addEventListener('change', () => {
+  recordsBody.querySelectorAll('input[data-record-id]').forEach((input) => { input.checked = selectAllRecords.checked; });
+  updateBatchCount();
+});
+submitBatchButton.addEventListener('click', submitBatch);
 
 const initializeAdminPage = async () => {
   await updateSessionBadge();

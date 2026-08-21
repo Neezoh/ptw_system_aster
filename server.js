@@ -191,6 +191,7 @@ const makeDemoRecords = () => {
 };
 
 const fallbackRecords = makeDemoRecords();
+const fallbackBatchSubmissions = [];
 const demoUserHash = bcrypt.hashSync(adminPassword, 10);
 
 const migratePtwSchema = async () => {
@@ -200,6 +201,18 @@ const migratePtwSchema = async () => {
     'ALTER TABLE ptw_records ADD COLUMN IF NOT EXISTS specific_location VARCHAR(180) NULL AFTER location',
     'ALTER TABLE ptw_records ADD COLUMN IF NOT EXISTS hse_officer_assessor VARCHAR(120) NULL AFTER authorised_authority_rep',
     "ALTER TABLE ptw_records MODIFY COLUMN status ENUM('Open','Closed','Suspended','Returned','Extended') NOT NULL"
+    ,`CREATE TABLE IF NOT EXISTS ptw_batch_submissions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      batch_reference VARCHAR(40) NOT NULL UNIQUE,
+      record_count INT NOT NULL,
+      record_ids JSON NOT NULL,
+      action VARCHAR(40) NOT NULL,
+      status VARCHAR(30) NOT NULL,
+      notes TEXT NULL,
+      submitted_by VARCHAR(80) NOT NULL,
+      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_batch_submitted_at (submitted_at)
+    )`
   ];
 
   for (const migration of migrations) {
@@ -333,7 +346,7 @@ const validatePtwPayload = (payload, { requireSiteTag = true } = {}) => {
   const status = String(payload.status || '');
 
   if (requireSiteTag && !siteTags.has(String(payload.site_tag || ''))) errors.site_tag = 'Select a valid site tag';
-  if (!/^JHA-\d{4}-\d{5}$/.test(String(payload.jha_number || ''))) errors.jha_number = 'JHA/JSA number must match JHA-YYYY-XXXXX';
+  if (!String(payload.jha_number || '').trim()) errors.jha_number = 'JHA/JSA number is required';
   if (!payload.location) errors.location = 'Location is required';
   if (enforceNewRules && !payload.specific_location) errors.specific_location = 'Specific location is required';
   if (!payload.permit_applicant_name) errors.permit_applicant_name = 'Permit applicant is required';
@@ -375,6 +388,8 @@ const nextPtwNumber = async (siteTag) => {
   const current = rows[0] ? Number(String(rows[0].ptw_number).slice(prefix.length)) : 0;
   return `${prefix}${String((Number.isInteger(current) ? current : 0) + 1).padStart(4, '0')}`;
 };
+
+const createBatchReference = () => `BATCH-${new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)}-${Math.floor(Math.random() * 900 + 100)}`;
 
 const summaryFallbackData = () => {
   const total = fallbackRecords.length;
@@ -863,6 +878,102 @@ app.post('/api/ptw', ensureAdmin, async (req, res) => {
     jsonResponse(res, true, rows[0], null, { status: 201, createdId: result.insertId });
   } catch (error) {
     jsonResponse(res, false, null, 'Unable to create PTW record', { status: 500 });
+  }
+});
+
+app.post('/api/ptw/batch', ensureAdmin, async (req, res) => {
+  const payload = req.body || {};
+  const recordIds = [...new Set(Array.isArray(payload.record_ids) ? payload.record_ids.map(Number) : [])];
+  const requestedStatus = String(payload.status || '').trim();
+  const requestedDateClosed = String(payload.date_closed || '').trim() || null;
+  const notes = String(payload.notes || '').trim().slice(0, 2000) || null;
+
+  if (!recordIds.length || recordIds.length > 100) {
+    return jsonResponse(res, false, null, 'Select between 1 and 100 PTW records', { status: 400 });
+  }
+  if (!allowedStatuses.has(requestedStatus)) {
+    return jsonResponse(res, false, null, 'Select a valid lifecycle status', { status: 400 });
+  }
+
+  if (!dbAvailable) {
+    const records = recordIds.map((id) => fallbackRecords.find((record) => record.id === id));
+    if (records.some((record) => !record)) {
+      return jsonResponse(res, false, null, 'One or more PTW records were not found', { status: 404 });
+    }
+
+    const updates = records.map((record) => {
+      const dateClosed = requestedStatus === 'Closed' || (requestedStatus === 'Suspended' && record.permit_type === 'Hot')
+        ? (requestedDateClosed || record.date_closed || (record.permit_type === 'Hot' ? record.date_issued : null))
+        : record.date_closed;
+      const candidate = { ...record, status: requestedStatus, date_closed: dateClosed };
+      const errors = validatePtwPayload(candidate, { requireSiteTag: Boolean(record.site_tag) });
+      return { record, candidate, errors };
+    });
+    const invalid = updates.find((update) => Object.keys(update.errors).length);
+    if (invalid) {
+      return jsonResponse(res, false, { recordId: invalid.record.id, fieldErrors: invalid.errors }, 'Batch validation failed', { status: 400 });
+    }
+
+    updates.forEach(({ record, candidate }) => Object.assign(record, candidate, { updated_at: new Date().toISOString() }));
+    const submission = {
+      id: fallbackBatchSubmissions.length + 1,
+      batch_reference: createBatchReference(),
+      record_count: records.length,
+      record_ids: recordIds,
+      action: 'lifecycle_update',
+      status: requestedStatus,
+      notes,
+      submitted_by: req.session.user.username,
+      submitted_at: new Date().toISOString()
+    };
+    fallbackBatchSubmissions.unshift(submission);
+    return jsonResponse(res, true, { submission, records: updates.map((update) => update.candidate) }, null, { status: 200 });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const placeholders = recordIds.map(() => '?').join(',');
+    const [records] = await connection.query(`SELECT * FROM ptw_records WHERE id IN (${placeholders}) FOR UPDATE`, recordIds);
+    if (records.length !== recordIds.length) {
+      await connection.rollback();
+      return jsonResponse(res, false, null, 'One or more PTW records were not found', { status: 404 });
+    }
+
+    const updates = records.map((record) => {
+      const dateClosed = requestedStatus === 'Closed' || (requestedStatus === 'Suspended' && record.permit_type === 'Hot')
+        ? (requestedDateClosed || record.date_closed || (record.permit_type === 'Hot' ? record.date_issued : null))
+        : record.date_closed;
+      const candidate = { ...record, status: requestedStatus, date_closed: dateClosed };
+      return { record, candidate, errors: validatePtwPayload(candidate, { requireSiteTag: Boolean(record.site_tag) }) };
+    });
+    const invalid = updates.find((update) => Object.keys(update.errors).length);
+    if (invalid) {
+      await connection.rollback();
+      return jsonResponse(res, false, { recordId: invalid.record.id, fieldErrors: invalid.errors }, 'Batch validation failed', { status: 400 });
+    }
+
+    for (const { record, candidate } of updates) {
+      await connection.query('UPDATE ptw_records SET status = ?, date_closed = ? WHERE id = ?', [candidate.status, candidate.date_closed, record.id]);
+    }
+
+    const batchReference = createBatchReference();
+    await connection.query(
+      `INSERT INTO ptw_batch_submissions
+       (batch_reference, record_count, record_ids, action, status, notes, submitted_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [batchReference, records.length, JSON.stringify(recordIds), 'lifecycle_update', requestedStatus, notes, req.session.user.username]
+    );
+    await connection.commit();
+    jsonResponse(res, true, {
+      submission: { batch_reference: batchReference, record_count: records.length, record_ids: recordIds, action: 'lifecycle_update', status: requestedStatus, notes },
+      records: updates.map((update) => update.candidate)
+    }, null, { status: 200 });
+  } catch (error) {
+    await connection.rollback();
+    jsonResponse(res, false, null, 'Unable to submit PTW batch', { status: 500 });
+  } finally {
+    connection.release();
   }
 });
 
